@@ -1,19 +1,61 @@
 # 🏛️ LLM Council MCP Server (`llm-council-mcp`)
 
-A high-performance Model Context Protocol (MCP) server that empowers **Antigravity 2.0 (Gemini 3.7 Flash)** to act as the primary Orchestrator & Executor while delegating:
-- **Architectural Design & Planning** to **OpenAI (`gpt-5.6-sol`)**
-- **Adversarial Critique & Edge-Case Stress Testing** to **DeepSeek (`deepseek-v4-pro` / `deepseek-reasoner`)**
+> [!NOTE]
+> **Attribution & Inspiration**: This project is inspired by **Andrej Karpathy's LLM Council** multi-perspective deliberation methodology. It operationalizes the 3-Stage Council Protocol (Independent Gathering, Adversarial Critique, and Chairman Synthesis) as a native **Model Context Protocol (MCP)** tool server for modern AI coding agents.
 
-Both external models are queried **concurrently** via asynchronous I/O to minimize latency.
+A high-performance MCP server that empowers **Antigravity 2.0 (Gemini 3.7 Flash)** to act as the primary Orchestrator & Workspace Executor while delegating:
+- **Architectural Strategy & Modular Contracts** to **OpenAI (`gpt-5.6-sol`)** *(The Architect)*
+- **Adversarial Critique & Edge-Case Stress Testing** to **DeepSeek (`deepseek-v4-pro` / `deepseek-reasoner`)** *(The Contrarian)*
+
+Both models are queried **concurrently** via asynchronous I/O to minimize latency, giving you frontier-grade deliberation without slowing down execution.
 
 ---
 
-## 🚀 Features
+## 📐 Architecture & 3-Stage Deliberation Protocol
 
-- **Multi-Model Deliberation (`deliberate_council`)**: Queries both the Architect and the Contrarian in parallel, producing a structured report with tension points for Gemini to synthesize.
-- **Architect on Demand (`consult_architect`)**: Direct single query to OpenAI for API contracts, schema layout, and modular design.
-- **Contrarian on Demand (`consult_contrarian`)**: Direct single query to DeepSeek Reasoner for bug-hunting, edge cases, race conditions, and over-engineering checks.
-- **Cost-Optimized Hybrid Economics**: Gemini absorbs 95% of workspace file I/O and terminal execution, while OpenAI and DeepSeek only fire during architectural planning.
+```
+                      ┌─────────────────────────────────────────┐
+                      │        Antigravity Orchestrator         │
+                      │          (Gemini 3.7 Flash)             │
+                      │  Context Ingestion & Workspace State    │
+                      └────────────────────┬────────────────────┘
+                                           │
+                              [MCP: deliberate_council]
+                                           │
+                   ┌───────────────────────┴───────────────────────┐
+                   ▼                                               ▼
+        ┌─────────────────────┐                         ┌─────────────────────┐
+        │    The Architect    │                         │   The Contrarian    │
+        │  (OpenAI gpt-5.6)   │                         │(DeepSeek Reasoner)  │
+        │  Stage 1: Gathering │   CONCURRENT ASYNC IO   │  Stage 2: Critique  │
+        │  Modular contracts  │ ◄─────────────────────► │  Adversarial flaws, │
+        │  & layout blueprint │   Independent Review    │  race conditions    │
+        └──────────┬──────────┘                         └──────────┬──────────┘
+                   │                                               │
+                   └───────────────────────┬───────────────────────┘
+                                           │
+                                           ▼
+                      ┌─────────────────────────────────────────┐
+                      │           Chairman Synthesis            │
+                      │          (Gemini 3.7 Flash)             │
+                      │  Reconciles tensions, produces decree,  │
+                      │  edits files, and verifies builds       │
+                      └─────────────────────────────────────────┘
+```
+
+1. **Stage 1: The Gathering (The Architect)**: OpenAI independently evaluates the problem, designing clean interface boundaries, type contracts, and sequence of changes.
+2. **Stage 2: The Critique (The Contrarian)**: DeepSeek Reasoner independently stress-tests the problem, searching for race conditions, subtle logic regressions, and unnecessary over-engineering.
+3. **Stage 3: The Chairman's Decree (The Executor)**: Gemini 3.7 Flash receives both structured perspectives, resolves points of tension, creates the implementation plan, and executes the code changes.
+
+---
+
+## 🚀 Exposed MCP Tools
+
+| Tool | Description |
+| :--- | :--- |
+| `deliberate_council` | Concurrently queries both the Architect (`gpt-5.6-sol`) and Contrarian (`deepseek-reasoner`), returning a structured report with identified tension points for Chairman synthesis. |
+| `consult_architect` | Single-target query to OpenAI for API schema design, interface planning, or modular file layouts. |
+| `consult_contrarian` | Single-target query to DeepSeek Reasoner for adversarial code reviews, bug-hunting, edge cases, and over-engineering checks. |
 
 ---
 
@@ -27,9 +69,10 @@ npm run build
 
 ---
 
-## ⚙️ Antigravity Configuration
+## ⚙️ Multi-Platform Configuration
 
-Add the server to your global Antigravity MCP configuration file (`~/.gemini/config/mcp_config.json`):
+### 1. Google Antigravity 2.0 / AGY CLI
+Add to `~/.gemini/config/mcp_config.json`:
 
 ```json
 {
@@ -51,6 +94,29 @@ Add the server to your global Antigravity MCP configuration file (`~/.gemini/con
 }
 ```
 
+### 2. Claude Code / Claude Desktop
+Add to `~/.claude/mcp.json` or `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "llm-council": {
+      "command": "node",
+      "args": [
+        "D:/Repositories/llm-council-mcp/dist/index.js"
+      ],
+      "env": {
+        "OPENAI_API_KEY": "sk-proj-YOUR_OPENAI_KEY",
+        "DEEPSEEK_API_KEY": "sk-YOUR_DEEPSEEK_KEY"
+      }
+    }
+  }
+}
+```
+
+### 3. Cursor & Codex
+Add the same server block to `~/.cursor/mcp.json` or Cursor Settings → Features → MCP.
+
 ---
 
 ## 🛠️ Environment Variables
@@ -67,5 +133,17 @@ Add the server to your global Antigravity MCP configuration file (`~/.gemini/con
 
 ---
 
-## 📄 License
-MIT
+## 💡 Economics & Cost Efficiency
+
+Because Antigravity (Gemini 3.7 Flash) absorbs 95% of workspace file searches, git diffs, and terminal runs within your base plan, the Council only burns external API tokens during high-level planning rounds:
+
+* **OpenAI (`gpt-5.6-sol`)**: ~\$0.025 / round
+* **DeepSeek (`deepseek-v4-pro`)**: ~\$0.007 / round
+* **Combined Cost**: **~\$0.032 (~3 to 4 cents) per full Council deliberation**.
+* **A \$50 balance (\$35 OpenAI + \$15 DeepSeek)** funds **~1,400 full deliberations** (5 to 7+ months of active development).
+
+---
+
+## 📄 Credits & License
+- Inspired by the **LLM Council** architecture conceived by **Andrej Karpathy**.
+- Released under the [MIT License](LICENSE).
