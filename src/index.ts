@@ -8,16 +8,20 @@ import {
   consultArchitect,
   consultContrarian,
   deliberateCouncil,
+  executeTaskWorker,
+  readFastContext,
 } from "./council.js";
 import {
   DeliberationInputSchema,
   SingleConsultInputSchema,
+  TaskWorkerInputSchema,
+  FastContextReaderInputSchema,
 } from "./types.js";
 
 const server = new Server(
   {
     name: "llm-council-mcp",
-    version: "1.0.0",
+    version: "1.1.0",
   },
   {
     capabilities: {
@@ -33,7 +37,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: "deliberate_council",
         description:
-          "Runs a full multi-model LLM Council deliberation. Concurrently queries the Architect (OpenAI gpt-5.6-sol) for a structural blueprint and the Contrarian (DeepSeek-V4 Pro / Reasoner) for adversarial critique and edge cases. Returns both perspectives for the Host Agent (Chairman) to synthesize and execute.",
+          "Runs a full multi-model LLM Council deliberation. Concurrently queries the Architect (OpenAI gpt-5.6-sol) for a structural blueprint and the Contrarian (DeepSeek-V4 Pro) for adversarial critique and edge cases. Returns both perspectives for the Host Agent (Chairman) to synthesize and execute.",
         inputSchema: {
           type: "object",
           properties: {
@@ -55,7 +59,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             contrarianModel: {
               type: "string",
               description:
-                "Optional override for the Contrarian model (default: deepseek-reasoner).",
+                "Optional override for the Contrarian model (default: deepseek-v4-pro).",
             },
             architectEffort: {
               type: "string",
@@ -108,7 +112,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: "consult_contrarian",
         description:
-          "Directly queries The Contrarian (DeepSeek-V4 Pro / Reasoner) for adversarial code review, bug-hunting, edge cases, race conditions, and over-engineering checks.",
+          "Directly queries The Contrarian (DeepSeek-V4 Pro) for adversarial code review, bug-hunting, edge cases, race conditions, and over-engineering checks.",
         inputSchema: {
           type: "object",
           properties: {
@@ -125,7 +129,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             model: {
               type: "string",
               description:
-                "Optional override for the Contrarian model (default: deepseek-reasoner).",
+                "Optional override for the Contrarian model (default: deepseek-v4-pro).",
             },
             effort: {
               type: "string",
@@ -135,6 +139,76 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
           },
           required: ["prompt"],
+        },
+      },
+      {
+        name: "offload_task",
+        description:
+          "Offloads a focused implementation subtask, utility function, unit test suite, regex, or refactoring step to a fast external worker (DeepSeek-V4 Flash or OpenAI gpt-5-mini) to save host agent context and execution limits.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            task: {
+              type: "string",
+              description:
+                "The exact subtask, function to write, unit test table, or transformation to perform.",
+            },
+            context: {
+              type: "string",
+              description:
+                "Surrounding code, types, constraints, or interfaces needed to execute the task accurately.",
+            },
+            provider: {
+              type: "string",
+              enum: ["deepseek", "openai"],
+              description:
+                "Worker provider (default: 'deepseek' for sub-2s latency and minimal cost).",
+            },
+            model: {
+              type: "string",
+              description:
+                "Optional model override (defaults to deepseek-v4-flash or gpt-5.6-sol).",
+            },
+            effort: {
+              type: "string",
+              enum: ["low", "medium", "high"],
+              description:
+                "Reasoning effort if using a reasoning model (default: 'low' for GPT SOL to achieve sub-2s latency).",
+            },
+          },
+          required: ["task"],
+        },
+      },
+      {
+        name: "fast_context_reader",
+        description:
+          "Parses, filters, or summarizes raw file contents, large logs, cache dumps, or complex schemas using a high-speed worker (DeepSeek-V4 Flash) in ~1-2 seconds. Prevents bloating host agent context window.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            content: {
+              type: "string",
+              description:
+                "The raw text, code file, log output, or cached content to extract from.",
+            },
+            focus: {
+              type: "string",
+              description:
+                "Extraction target (e.g. 'all error stack traces', 'exported interface signatures', 'list of changed state variables').",
+            },
+            provider: {
+              type: "string",
+              enum: ["deepseek", "openai"],
+              description:
+                "Worker provider (default: 'deepseek').",
+            },
+            model: {
+              type: "string",
+              description:
+                "Optional model override (default: deepseek-v4-flash).",
+            },
+          },
+          required: ["content", "focus"],
         },
       },
     ],
@@ -195,6 +269,34 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           {
             type: "text",
             text: `### The Contrarian's Adversarial Review (${result.model} - ${result.durationMs}ms)\n\n${result.response}`,
+          },
+        ],
+      };
+    }
+
+    if (name === "offload_task") {
+      const parsed = TaskWorkerInputSchema.parse(args);
+      const result = await executeTaskWorker(parsed);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `### Worker Task Result (${result.provider}:${result.model} - ${result.durationMs}ms)\n\n${result.response}`,
+          },
+        ],
+      };
+    }
+
+    if (name === "fast_context_reader") {
+      const parsed = FastContextReaderInputSchema.parse(args);
+      const result = await readFastContext(parsed);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `### Extracted Context (${result.provider}:${result.model} - ${result.durationMs}ms)\n\n${result.response}`,
           },
         ],
       };

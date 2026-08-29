@@ -3,18 +3,26 @@ import {
   getDeepSeekClient,
   DEFAULT_ARCHITECT_MODEL,
   DEFAULT_CONTRARIAN_MODEL,
+  DEFAULT_DEEPSEEK_FLASH_MODEL,
+  DEFAULT_OPENAI_WORKER_MODEL,
+  DEFAULT_OPENAI_WORKER_EFFORT,
   DEFAULT_ARCHITECT_EFFORT,
   DEFAULT_CONTRARIAN_EFFORT,
 } from "./providers.js";
 import {
   ARCHITECT_SYSTEM_PROMPT,
   CONTRARIAN_SYSTEM_PROMPT,
+  WORKER_SYSTEM_PROMPT,
+  CONTEXT_READER_SYSTEM_PROMPT,
 } from "./prompts.js";
 import {
   CouncilMemberResult,
   DeliberationInput,
   DeliberationOutput,
   SingleConsultInput,
+  TaskWorkerInput,
+  FastContextReaderInput,
+  WorkerResult,
 } from "./types.js";
 
 export async function consultArchitect(
@@ -152,4 +160,91 @@ export async function deliberateCouncil(
     contrarian: contrarianResult,
     tensionPoints,
   };
+}
+
+export async function executeTaskWorker(
+  input: TaskWorkerInput
+): Promise<WorkerResult> {
+  const provider = input.provider || "deepseek";
+  const model =
+    input.model ||
+    (provider === "openai" ? DEFAULT_OPENAI_WORKER_MODEL : DEFAULT_DEEPSEEK_FLASH_MODEL);
+  const effort = input.effort || (provider === "openai" ? DEFAULT_OPENAI_WORKER_EFFORT : undefined);
+  const startTime = Date.now();
+
+  try {
+    const client = provider === "openai" ? getOpenAIClient() : getDeepSeekClient();
+    const userMessage = input.context
+      ? `CONTEXT:\n${input.context}\n\nTASK TO COMPLETE:\n${input.task}`
+      : input.task;
+
+    const requestPayload: any = {
+      model,
+      messages: [
+        { role: "system", content: WORKER_SYSTEM_PROMPT },
+        { role: "user", content: userMessage },
+      ],
+    };
+
+    if (effort) {
+      requestPayload.reasoning_effort = effort;
+    }
+
+    const response = await client.chat.completions.create(requestPayload);
+
+    const choice = response.choices[0];
+    return {
+      provider,
+      model,
+      response: choice.message.content || "No content returned.",
+      durationMs: Date.now() - startTime,
+    };
+  } catch (error: any) {
+    return {
+      provider,
+      model,
+      response: `Worker task execution failed: ${error.message || String(error)}`,
+      durationMs: Date.now() - startTime,
+      error: error.message || String(error),
+    };
+  }
+}
+
+export async function readFastContext(
+  input: FastContextReaderInput
+): Promise<WorkerResult> {
+  const provider = input.provider || "deepseek";
+  const model =
+    input.model ||
+    (provider === "openai" ? DEFAULT_OPENAI_WORKER_MODEL : DEFAULT_DEEPSEEK_FLASH_MODEL);
+  const startTime = Date.now();
+
+  try {
+    const client = provider === "openai" ? getOpenAIClient() : getDeepSeekClient();
+    const userMessage = `CONTENT TO PARSE:\n${input.content}\n\nFOCUS / EXTRACTION DIRECTIVE:\n${input.focus}`;
+
+    const response = await client.chat.completions.create({
+      model,
+      messages: [
+        { role: "system", content: CONTEXT_READER_SYSTEM_PROMPT },
+        { role: "user", content: userMessage },
+      ],
+    });
+
+    const choice = response.choices[0];
+    return {
+      provider,
+      model,
+      response: choice.message.content || "No content returned.",
+      durationMs: Date.now() - startTime,
+    };
+  } catch (error: any) {
+    return {
+      provider,
+      model,
+      response: `Fast context reading failed: ${error.message || String(error)}`,
+      durationMs: Date.now() - startTime,
+      error: error.message || String(error),
+    };
+  }
 }

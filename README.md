@@ -54,9 +54,11 @@ Both models are queried **concurrently** via asynchronous I/O to minimize latenc
 
 | Tool | Description |
 | :--- | :--- |
-| `deliberate_council` | Concurrently queries both the Architect (`gpt-5.6-sol`) and Contrarian (`deepseek-reasoner`), returning a structured report with identified tension points for Chairman synthesis. |
+| `deliberate_council` | Concurrently queries both the Architect (`gpt-5.6-sol`) and Contrarian (`deepseek-v4-pro`), returning a structured report with identified tension points for Chairman synthesis. |
 | `consult_architect` | Single-target query to OpenAI for API schema design, interface planning, or modular file layouts. |
-| `consult_contrarian` | Single-target query to DeepSeek Reasoner for adversarial code reviews, bug-hunting, edge cases, and over-engineering checks. |
+| `consult_contrarian` | Single-target query to DeepSeek-V4 Pro for adversarial code reviews, bug-hunting, edge cases, and over-engineering checks. |
+| `offload_task` | Offloads focused implementation subtasks, utility code, unit test suites, or regex writing to high-speed workers (**DeepSeek-V4 Flash** or **OpenAI gpt-5-mini**). Prevents host turn/token depletion. |
+| `fast_context_reader` | High-speed document/log parsing and filtering via **DeepSeek-V4 Flash** in ~1–2s. Extracts only requested signals without bloating host agent context. |
 
 ---
 
