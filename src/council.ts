@@ -3,6 +3,8 @@ import {
   getDeepSeekClient,
   DEFAULT_ARCHITECT_MODEL,
   DEFAULT_CONTRARIAN_MODEL,
+  DEFAULT_ARCHITECT_EFFORT,
+  DEFAULT_CONTRARIAN_EFFORT,
 } from "./providers.js";
 import {
   ARCHITECT_SYSTEM_PROMPT,
@@ -19,6 +21,7 @@ export async function consultArchitect(
   input: SingleConsultInput
 ): Promise<CouncilMemberResult> {
   const model = input.model || DEFAULT_ARCHITECT_MODEL;
+  const effort = input.effort || DEFAULT_ARCHITECT_EFFORT;
   const startTime = Date.now();
 
   try {
@@ -29,16 +32,18 @@ export async function consultArchitect(
 
     const response = await client.chat.completions.create({
       model,
+      reasoning_effort: effort,
       messages: [
         { role: "system", content: ARCHITECT_SYSTEM_PROMPT },
         { role: "user", content: userMessage },
       ],
-    });
+    } as any);
 
     const choice = response.choices[0];
     return {
       role: "Architect & Planner",
       model,
+      effort,
       response: choice.message.content || "No content returned.",
       durationMs: Date.now() - startTime,
     };
@@ -46,6 +51,7 @@ export async function consultArchitect(
     return {
       role: "Architect & Planner",
       model,
+      effort,
       response: `Failed to consult Architect: ${error.message || String(error)}`,
       durationMs: Date.now() - startTime,
       error: error.message || String(error),
@@ -57,6 +63,7 @@ export async function consultContrarian(
   input: SingleConsultInput
 ): Promise<CouncilMemberResult> {
   const model = input.model || DEFAULT_CONTRARIAN_MODEL;
+  const effort = input.effort || DEFAULT_CONTRARIAN_EFFORT;
   const startTime = Date.now();
 
   try {
@@ -67,11 +74,12 @@ export async function consultContrarian(
 
     const response = await client.chat.completions.create({
       model,
+      reasoning_effort: effort,
       messages: [
         { role: "system", content: CONTRARIAN_SYSTEM_PROMPT },
         { role: "user", content: userMessage },
       ],
-    });
+    } as any);
 
     const choice = response.choices[0];
     const reasoning = (choice.message as any).reasoning_content;
@@ -79,6 +87,7 @@ export async function consultContrarian(
     return {
       role: "Contrarian & Adversarial Reviewer",
       model,
+      effort,
       response: choice.message.content || "No content returned.",
       thinking: reasoning,
       durationMs: Date.now() - startTime,
@@ -87,6 +96,7 @@ export async function consultContrarian(
     return {
       role: "Contrarian & Adversarial Reviewer",
       model,
+      effort,
       response: `Failed to consult Contrarian: ${error.message || String(error)}`,
       durationMs: Date.now() - startTime,
       error: error.message || String(error),
@@ -99,22 +109,26 @@ export async function deliberateCouncil(
 ): Promise<DeliberationOutput> {
   const architectModel = input.architectModel || DEFAULT_ARCHITECT_MODEL;
   const contrarianModel = input.contrarianModel || DEFAULT_CONTRARIAN_MODEL;
+  const architectEffort = input.architectEffort || DEFAULT_ARCHITECT_EFFORT;
+  const contrarianEffort = input.contrarianEffort || DEFAULT_CONTRARIAN_EFFORT;
 
-  // 1. Stage 1: Parallel Gathering (Independent generation)
+  // Stage 1: Parallel Gathering (Independent generation, no cross-contamination)
   const [architectResult, contrarianResult] = await Promise.all([
     consultArchitect({
       prompt: input.problem,
       context: input.context,
       model: architectModel,
+      effort: architectEffort,
     }),
     consultContrarian({
       prompt: input.problem,
       context: input.context,
       model: contrarianModel,
+      effort: contrarianEffort,
     }),
   ]);
 
-  // 2. Identify key tensions / points of comparison
+  // Stage 2: Identify key tensions / points of comparison for the Chairman
   const tensionPoints: string[] = [];
 
   if (architectResult.error) {

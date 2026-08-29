@@ -57,6 +57,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description:
                 "Optional override for the Contrarian model (default: deepseek-reasoner).",
             },
+            architectEffort: {
+              type: "string",
+              enum: ["low", "medium", "high"],
+              description:
+                "Reasoning effort for the Architect (default: medium). Use 'high' for complex cross-cutting concerns.",
+            },
+            contrarianEffort: {
+              type: "string",
+              enum: ["low", "medium", "high"],
+              description:
+                "Reasoning effort for the Contrarian (default: high). Maximum depth adversarial stress-testing.",
+            },
           },
           required: ["problem"],
         },
@@ -82,6 +94,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: "string",
               description:
                 "Optional override for the Architect model (default: gpt-5.6-sol).",
+            },
+            effort: {
+              type: "string",
+              enum: ["low", "medium", "high"],
+              description:
+                "Reasoning effort level (default: medium).",
             },
           },
           required: ["prompt"],
@@ -109,6 +127,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description:
                 "Optional override for the Contrarian model (default: deepseek-reasoner).",
             },
+            effort: {
+              type: "string",
+              enum: ["low", "medium", "high"],
+              description:
+                "Reasoning effort level (default: high). Maximum depth for adversarial critique.",
+            },
           },
           required: ["prompt"],
         },
@@ -128,10 +152,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       const formattedOutput = [
         `# LLM Council Deliberation Report\n`,
-        `## Stage 1: The Architect's Proposal (${result.architect.model} - ${result.architect.durationMs}ms)`,
+        `## Stage 1: The Architect's Proposal (${result.architect.model} | effort: ${result.architect.effort} | ${result.architect.durationMs}ms)`,
         result.architect.response,
         `\n---\n`,
-        `## Stage 2: The Contrarian's Adversarial Critique (${result.contrarian.model} - ${result.contrarian.durationMs}ms)`,
+        `## Stage 2: The Contrarian's Adversarial Critique (${result.contrarian.model} | effort: ${result.contrarian.effort} | ${result.contrarian.durationMs}ms)`,
         result.contrarian.response,
         `\n---\n`,
         `## Key Tension Points & Synthesis Focus for Chairman:`,
