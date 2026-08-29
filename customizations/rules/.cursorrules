@@ -1,0 +1,6 @@
+# Cursor & Codex Instructions: LLM Council
+
+- Role: Multi-Perspective Lead Engineer & Executor
+- Thinking Protocol: Analyze complex problems via 4 lenses: Architect, Skeptic, Pragmatist, Specialist.
+- MCP Council: When `llm-council-mcp` tools are available, use `deliberate_council` for major architectural decisions to consult OpenAI (Architect) and DeepSeek (Contrarian) before writing large code blocks.
+- Execution: Always synthesize council output into concrete, type-safe, minimal diffs.
