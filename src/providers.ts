@@ -30,7 +30,7 @@ export function getDeepSeekClient(): OpenAI {
 }
 
 export const DEFAULT_ARCHITECT_MODEL = process.env.COUNCIL_ARCHITECT_MODEL || "gpt-5.6-sol";
-export const DEFAULT_CONTRARIAN_MODEL = process.env.COUNCIL_CONTRARIAN_MODEL || "deepseek-reasoner";
+export const DEFAULT_CONTRARIAN_MODEL = process.env.COUNCIL_CONTRARIAN_MODEL || "deepseek-v4-pro";
 
 // Reasoning effort levels: "low" | "medium" | "high"
 // Architect defaults to "medium" — structured design does not need exhaustive tree search.
