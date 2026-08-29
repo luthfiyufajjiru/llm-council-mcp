@@ -3,11 +3,11 @@
 > [!NOTE]
 > **Attribution & Inspiration**: This project is inspired by **Andrej Karpathy's LLM Council** multi-perspective deliberation methodology. It operationalizes the 3-Stage Council Protocol (Independent Gathering, Adversarial Critique, and Chairman Synthesis) as a native **Model Context Protocol (MCP)** tool server for modern AI coding agents.
 
-A high-performance MCP server that empowers **Antigravity 2.0 (Gemini 3.7 Flash)** to act as the primary Orchestrator & Workspace Executor while delegating:
+A high-performance, host-agnostic MCP server that empowers **Any AI Coding Agent (Google Antigravity, Claude Code, Codex, Cursor)** to act as the **Chairman & Executor** while delegating:
 - **Architectural Strategy & Modular Contracts** to **OpenAI (`gpt-5.6-sol`)** *(The Architect)*
 - **Adversarial Critique & Edge-Case Stress Testing** to **DeepSeek (`deepseek-v4-pro` / `deepseek-reasoner`)** *(The Contrarian)*
 
-Both models are queried **concurrently** via asynchronous I/O to minimize latency, giving you frontier-grade deliberation without slowing down execution.
+Both models are queried **concurrently** via asynchronous I/O to minimize latency, giving any host agent frontier-grade peer review without slowing down execution.
 
 ---
 
@@ -15,8 +15,9 @@ Both models are queried **concurrently** via asynchronous I/O to minimize latenc
 
 ```
                       ┌─────────────────────────────────────────┐
-                      │        Antigravity Orchestrator         │
-                      │          (Gemini 3.7 Flash)             │
+                      │        THE CHAIRMAN & EXECUTOR          │
+                      │  (Dynamic Host: Antigravity / Claude /  │
+                      │               Codex / Cursor)           │
                       │  Context Ingestion & Workspace State    │
                       └────────────────────┬────────────────────┘
                                            │
@@ -36,8 +37,8 @@ Both models are queried **concurrently** via asynchronous I/O to minimize latenc
                                            │
                                            ▼
                       ┌─────────────────────────────────────────┐
-                      │           Chairman Synthesis            │
-                      │          (Gemini 3.7 Flash)             │
+                      │           CHAIRMAN'S DECREE             │
+                      │      (Synthesized by Host Agent)        │
                       │  Reconciles tensions, produces decree,  │
                       │  edits files, and verifies builds       │
                       └─────────────────────────────────────────┘
@@ -45,7 +46,7 @@ Both models are queried **concurrently** via asynchronous I/O to minimize latenc
 
 1. **Stage 1: The Gathering (The Architect)**: OpenAI independently evaluates the problem, designing clean interface boundaries, type contracts, and sequence of changes.
 2. **Stage 2: The Critique (The Contrarian)**: DeepSeek Reasoner independently stress-tests the problem, searching for race conditions, subtle logic regressions, and unnecessary over-engineering.
-3. **Stage 3: The Chairman's Decree (The Executor)**: Gemini 3.7 Flash receives both structured perspectives, resolves points of tension, creates the implementation plan, and executes the code changes.
+3. **Stage 3: The Chairman's Decree (The Host Agent)**: The calling agent (Antigravity Gemini, Claude Code, or Codex/Cursor) receives both structured perspectives, resolves points of tension, creates the implementation plan, and executes the workspace changes.
 
 ---
 

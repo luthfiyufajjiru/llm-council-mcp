@@ -33,7 +33,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: "deliberate_council",
         description:
-          "Runs a full multi-model LLM Council deliberation. Concurrently queries the Architect (OpenAI gpt-5.6-sol) for a structural blueprint and the Contrarian (DeepSeek-V4 Pro / Reasoner) for adversarial critique and edge cases. Returns both perspectives for Gemini synthesis.",
+          "Runs a full multi-model LLM Council deliberation. Concurrently queries the Architect (OpenAI gpt-5.6-sol) for a structural blueprint and the Contrarian (DeepSeek-V4 Pro / Reasoner) for adversarial critique and edge cases. Returns both perspectives for the Host Agent (Chairman) to synthesize and execute.",
         inputSchema: {
           type: "object",
           properties: {
