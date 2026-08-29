@@ -127,14 +127,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const result = await deliberateCouncil(parsed);
 
       const formattedOutput = [
-        `# 🏛️ LLM Council Deliberation Report\n`,
-        `## 📐 Stage 1: The Architect's Proposal (${result.architect.model} - ${result.architect.durationMs}ms)`,
+        `# LLM Council Deliberation Report\n`,
+        `## Stage 1: The Architect's Proposal (${result.architect.model} - ${result.architect.durationMs}ms)`,
         result.architect.response,
         `\n---\n`,
-        `## ⚡ Stage 2: The Contrarian's Adversarial Critique (${result.contrarian.model} - ${result.contrarian.durationMs}ms)`,
+        `## Stage 2: The Contrarian's Adversarial Critique (${result.contrarian.model} - ${result.contrarian.durationMs}ms)`,
         result.contrarian.response,
         `\n---\n`,
-        `## ⚖️ Key Tension Points & Synthesis Focus for Chairman:`,
+        `## Key Tension Points & Synthesis Focus for Chairman:`,
         ...result.tensionPoints.map((tp) => `- ${tp}`),
       ].join("\n");
 
@@ -156,7 +156,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         content: [
           {
             type: "text",
-            text: `### 📐 The Architect's Guidance (${result.model} - ${result.durationMs}ms)\n\n${result.response}`,
+            text: `### The Architect's Guidance (${result.model} - ${result.durationMs}ms)\n\n${result.response}`,
           },
         ],
       };
@@ -170,7 +170,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         content: [
           {
             type: "text",
-            text: `### ⚡ The Contrarian's Adversarial Review (${result.model} - ${result.durationMs}ms)\n\n${result.response}`,
+            text: `### The Contrarian's Adversarial Review (${result.model} - ${result.durationMs}ms)\n\n${result.response}`,
           },
         ],
       };
@@ -194,7 +194,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("🏛️ LLM Council MCP Server running on stdio transport.");
+  console.error("LLM Council MCP Server running on stdio transport.");
 }
 
 main().catch((error) => {

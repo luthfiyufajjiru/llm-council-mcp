@@ -1,4 +1,4 @@
-# 🏛️ LLM Council MCP Server (`llm-council-mcp`)
+# LLM Council MCP Server (`llm-council-mcp`)
 
 > [!NOTE]
 > **Attribution & Inspiration**: This project is inspired by **Andrej Karpathy's LLM Council** multi-perspective deliberation methodology. It operationalizes the 3-Stage Council Protocol (Independent Gathering, Adversarial Critique, and Chairman Synthesis) as a native **Model Context Protocol (MCP)** tool server for modern AI coding agents.
@@ -11,7 +11,7 @@ Both models are queried **concurrently** via asynchronous I/O to minimize latenc
 
 ---
 
-## 📐 Architecture & 3-Stage Deliberation Protocol
+## Architecture & 3-Stage Deliberation Protocol
 
 ```
                       ┌─────────────────────────────────────────┐
@@ -50,7 +50,7 @@ Both models are queried **concurrently** via asynchronous I/O to minimize latenc
 
 ---
 
-## 🚀 Exposed MCP Tools
+## Exposed MCP Tools
 
 | Tool | Description |
 | :--- | :--- |
@@ -60,7 +60,7 @@ Both models are queried **concurrently** via asynchronous I/O to minimize latenc
 
 ---
 
-## 📦 Installation & Build
+## Installation & Build
 
 ```bash
 cd D:/Repositories/llm-council-mcp
@@ -70,7 +70,7 @@ npm run build
 
 ---
 
-## ⚙️ Multi-Platform Configuration
+## Multi-Platform Configuration
 
 ### 1. Google Antigravity 2.0 / AGY CLI
 Add to `~/.gemini/config/mcp_config.json`:
@@ -120,7 +120,7 @@ Add the same server block to `~/.cursor/mcp.json` or Cursor Settings → Feature
 
 ---
 
-## 🛠️ Environment Variables
+## Environment Variables
 
 | Variable | Description | Default |
 | :--- | :--- | :--- |
@@ -134,9 +134,9 @@ Add the same server block to `~/.cursor/mcp.json` or Cursor Settings → Feature
 
 ---
 
-## 💡 Economics & Cost Efficiency
+## Economics & Cost Efficiency
 
-Because Antigravity (Gemini 3.7 Flash) absorbs 95% of workspace file searches, git diffs, and terminal runs within your base plan, the Council only burns external API tokens during high-level planning rounds:
+Because the host orchestrator absorbs 95% of workspace file searches, git diffs, and terminal runs within your base plan, the Council only burns external API tokens during high-level planning rounds:
 
 * **OpenAI (`gpt-5.6-sol`)**: ~\$0.025 / round
 * **DeepSeek (`deepseek-v4-pro`)**: ~\$0.007 / round
@@ -145,6 +145,6 @@ Because Antigravity (Gemini 3.7 Flash) absorbs 95% of workspace file searches, g
 
 ---
 
-## 📄 Credits & License
+## Credits & License
 - Inspired by the **LLM Council** architecture conceived by **Andrej Karpathy**.
 - Released under the [MIT License](LICENSE).
