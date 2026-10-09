@@ -150,3 +150,28 @@ Because the host orchestrator absorbs 95% of workspace file searches, git diffs,
 ## Credits & License
 - Inspired by the **LLM Council** architecture conceived by **Andrej Karpathy**.
 - Released under the [MIT License](LICENSE).
+
+## Shared HTTP Service (one server for every host on the machine)
+
+Instead of each host spawning its own stdio child process, run a single stateless Streamable HTTP server that Antigravity, Claude Code, etc. all connect to. It binds to loopback only and rejects non-local `Origin` headers; set `COUNCIL_HTTP_TOKEN` to additionally require `Authorization: Bearer <token>`.
+
+```bash
+npm run build
+node dist/index.js --http --port 8765     # or COUNCIL_TRANSPORT=http
+```
+
+Start at logon (Windows Task Scheduler, hidden, logs to `council.log`):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install-autostart.ps1          # install
+powershell -ExecutionPolicy Bypass -File scripts\install-autostart.ps1 -Uninstall
+```
+
+After a rebuild, restart with `Stop-ScheduledTask LLMCouncilMCP; Start-ScheduledTask LLMCouncilMCP`. The server is stateless, so hosts reconnect without session errors.
+
+Host config:
+
+- Claude Code: `claude mcp add --scope user --transport http llm-council http://127.0.0.1:8765/mcp`
+- Antigravity (`mcp_config.json`): `"llm-council": { "serverUrl": "http://127.0.0.1:8765/mcp" }`
+
+Health check: `http://127.0.0.1:8765/health`.

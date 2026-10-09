@@ -4,6 +4,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
+import { startHttp } from "./http.js";
 import {
   consultArchitect,
   consultContrarian,
@@ -27,7 +28,7 @@ import {
   FastContextReaderInputSchema,
 } from "./types.js";
 
-const server = new Server(
+const createBareServer = () => new Server(
   {
     name: "llm-council-mcp",
     version: "1.1.0",
@@ -85,6 +86,7 @@ const ADVISORY_NOTICE =
 const effortEnum =["low", "medium", "high"];
 
 // Register Tools
+function registerHandlers(server: Server): void {
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
@@ -355,10 +357,35 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
-// Start Server Transport
+}
+
+function createServer(): Server {
+  const server = createBareServer();
+  registerHandlers(server);
+  return server;
+}
+
+// Transport selection: stdio (default, per-host child process) or a shared HTTP
+// service (--http) that every host on this machine can connect to.
 async function main() {
+  const args = process.argv.slice(2);
+  const useHttp = args.includes("--http") || process.env.COUNCIL_TRANSPORT === "http";
+
+  if (useHttp) {
+    const arg = (name: string) => {
+      const i = args.indexOf(name);
+      return i >= 0 ? args[i + 1] : undefined;
+    };
+    startHttp(createServer, {
+      host: arg("--host") || process.env.COUNCIL_HTTP_HOST || "127.0.0.1",
+      port: parseInt(arg("--port") || process.env.COUNCIL_HTTP_PORT || "8765", 10),
+      token: process.env.COUNCIL_HTTP_TOKEN || undefined,
+    });
+    return;
+  }
+
   const transport = new StdioServerTransport();
-  await server.connect(transport);
+  await createServer().connect(transport);
   console.error("LLM Council MCP Server running on stdio transport.");
 }
 
