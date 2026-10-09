@@ -64,7 +64,12 @@ export function startHttp(createServer: () => Server, opts: HttpOptions): http.S
         return reject(res, 405, "Method not allowed (stateless server: POST only)");
       }
 
-      const body = await readBody(req);
+      const body: any = await readBody(req);
+      const rpc = Array.isArray(body) ? body[0] : body;
+      const client = rpc?.params?.clientInfo?.name;
+      console.error(
+        `[${new Date().toISOString()}] ${rpc?.method ?? "?"}${client ? ` client=${client}` : ""} ua=${req.headers["user-agent"] ?? "-"}`
+      );
       const server = createServer();
       const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
       res.on("close", () => {
