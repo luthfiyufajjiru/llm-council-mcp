@@ -365,7 +365,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     tool: request.params.name,
     ok: !("isError" in result && result.isError),
     ms: Date.now() - startedAt,
-    detail: "isError" in result && result.isError ? String(first?.text ?? "").slice(0, 160) : undefined,
+    detail: "isError" in result && result.isError ? String(first?.text ?? "").slice(0, 500) : undefined,
   });
   return result;
 });
