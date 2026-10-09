@@ -8,7 +8,6 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
 dotenv.config(); // fallback to cwd
 
-
 export function getOpenAIClient(): OpenAI {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -35,16 +34,35 @@ export function getDeepSeekClient(): OpenAI {
   });
 }
 
-export const DEFAULT_ARCHITECT_MODEL = process.env.COUNCIL_ARCHITECT_MODEL || "gpt-5.6-sol";
-export const DEFAULT_CONTRARIAN_MODEL = process.env.COUNCIL_CONTRARIAN_MODEL || "deepseek-v4-pro";
+export function normalizeDeepSeekModel(model?: string): string {
+  if (!model) return DEFAULT_CONTRARIAN_MODEL;
+  const m = model.toLowerCase().trim();
+  if (
+    m === "deepseek-v4.1" ||
+    m === "deepseek-v4.1-pro" ||
+    m === "deepseek-v4.1-flash" ||
+    m === "deepseek-4.1" ||
+    m === "deepseek-v4-flash" ||
+    m === "deepseek-v4-pro" ||
+    m === "deepseek-flash" ||
+    m === "v4.1" ||
+    m === "4.1"
+  ) {
+    return "deepseek-flash";
+  }
+  return model;
+}
 
-// Fast worker & context reader models
-export const DEFAULT_DEEPSEEK_FLASH_MODEL = process.env.COUNCIL_DEEPSEEK_FLASH_MODEL || "deepseek-v4-flash";
-export const DEFAULT_OPENAI_WORKER_MODEL = process.env.COUNCIL_OPENAI_WORKER_MODEL || "gpt-5.6-sol";
+export const DEFAULT_ARCHITECT_MODEL = process.env.COUNCIL_ARCHITECT_MODEL || "gpt-6-astra";
+export const DEFAULT_CONTRARIAN_MODEL = process.env.COUNCIL_CONTRARIAN_MODEL || "deepseek-flash";
+
+// Fast worker & context reader models (DeepSeek-V4.1 Flash via 'deepseek-flash')
+export const DEFAULT_DEEPSEEK_FLASH_MODEL = process.env.COUNCIL_DEEPSEEK_FLASH_MODEL || "deepseek-flash";
+export const DEFAULT_OPENAI_WORKER_MODEL = process.env.COUNCIL_OPENAI_WORKER_MODEL || "gpt-6-astra";
 export const DEFAULT_OPENAI_WORKER_EFFORT = (process.env.COUNCIL_OPENAI_WORKER_EFFORT || "low") as "low" | "medium" | "high";
 
 // Reasoning effort levels: "low" | "medium" | "high"
-// Architect defaults to "medium" — structured design does not need exhaustive tree search.
-// Contrarian defaults to "high"  — adversarial stress-testing requires maximum chain-of-thought depth.
+// Architect defaults to "medium" - structured design does not need exhaustive tree search.
+// Contrarian defaults to "high"  - adversarial stress-testing requires maximum chain-of-thought depth.
 export const DEFAULT_ARCHITECT_EFFORT = (process.env.COUNCIL_ARCHITECT_EFFORT || "medium") as "low" | "medium" | "high";
 export const DEFAULT_CONTRARIAN_EFFORT = (process.env.COUNCIL_CONTRARIAN_EFFORT || "high") as "low" | "medium" | "high";

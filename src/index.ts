@@ -12,6 +12,15 @@ import {
   readFastContext,
 } from "./council.js";
 import {
+  DEFAULT_ARCHITECT_MODEL,
+  DEFAULT_CONTRARIAN_MODEL,
+  DEFAULT_DEEPSEEK_FLASH_MODEL,
+  DEFAULT_OPENAI_WORKER_MODEL,
+  DEFAULT_OPENAI_WORKER_EFFORT,
+  DEFAULT_ARCHITECT_EFFORT,
+  DEFAULT_CONTRARIAN_EFFORT,
+} from "./providers.js";
+import {
   DeliberationInputSchema,
   SingleConsultInputSchema,
   TaskWorkerInputSchema,
@@ -30,6 +39,48 @@ const server = new Server(
   }
 );
 
+// Shared brief fields. Council members are blind (no repo/tool access): the host agent
+// must investigate first (graphify, file reads) and pass what it learned here.
+const briefProperties = {
+  system_overview: {
+    type: "string",
+    description:
+      "Your understanding of the system: architecture, module boundaries, data flow, relevant graphify findings. Investigate BEFORE calling; the council cannot see the repo.",
+  },
+  relevant_code: {
+    type: "string",
+    description: "Code excerpts with file paths: signatures, interfaces, and the code under discussion.",
+  },
+  context_files: {
+    type: "array",
+    items: { type: "string" },
+    description:
+      "File paths the server reads and attaches (secret/key files are refused; size-capped). Optional line range: 'src/a.ts:10-80'. Relative paths resolve against workspace_root.",
+  },
+  workspace_root: {
+    type: "string",
+    description: "Absolute project root for resolving relative context_files (default: server cwd).",
+  },
+  constraints: {
+    type: "string",
+    description: "Hard constraints: conventions, performance budgets, compatibility, forbidden approaches.",
+  },
+  prior_decisions: {
+    type: "string",
+    description: "Decisions already made and approaches already tried or rejected, with reasons.",
+  },
+  success_criteria: {
+    type: "string",
+    description: "What done looks like; how the answer will be judged.",
+  },
+  context: { type: "string", description: "Any additional free-form context." },
+} as const;
+
+const BRIEFING_PROTOCOL =
+  " BRIEFING PROTOCOL: council members are blind (no repo or tool access). Investigate first (graphify, file reads), then pass your findings in the brief fields. Members end with 'Needs from host' requests; satisfy them and re-consult if material.";
+
+const effortEnum = ["low", "medium", "high"];
+
 // Register Tools
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
@@ -37,7 +88,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: "deliberate_council",
         description:
-          "Runs a full multi-model LLM Council deliberation. Concurrently queries the Architect (OpenAI gpt-5.6-sol) for a structural blueprint and the Contrarian (DeepSeek-V4 Pro) for adversarial critique and edge cases. Returns both perspectives for the Host Agent (Chairman) to synthesize and execute.",
+          `Runs a full multi-model LLM Council deliberation. Concurrently queries the Architect (${DEFAULT_ARCHITECT_MODEL}) for a structural blueprint and the Contrarian (${DEFAULT_CONTRARIAN_MODEL}) for adversarial critique and edge cases. Returns both perspectives for the Host Agent (Chairman) to synthesize and execute. Requires system_overview plus relevant_code and/or context_files.` +
+          BRIEFING_PROTOCOL,
         inputSchema: {
           type: "object",
           properties: {
@@ -46,41 +98,34 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description:
                 "The core engineering task, architectural question, design choice, or bug to solve.",
             },
-            context: {
-              type: "string",
-              description:
-                "Relevant context, codebase conventions, interface definitions, or constraints.",
-            },
+            ...briefProperties,
             architectModel: {
               type: "string",
-              description:
-                "Optional override for the Architect model (default: gpt-5.6-sol).",
+              description: `Optional override for the Architect model (default: ${DEFAULT_ARCHITECT_MODEL}).`,
             },
             contrarianModel: {
               type: "string",
-              description:
-                "Optional override for the Contrarian model (default: deepseek-v4-pro).",
+              description: `Optional override for the Contrarian model (default: ${DEFAULT_CONTRARIAN_MODEL}).`,
             },
             architectEffort: {
               type: "string",
-              enum: ["low", "medium", "high"],
-              description:
-                "Reasoning effort for the Architect (default: medium). Use 'high' for complex cross-cutting concerns.",
+              enum: effortEnum,
+              description: `Reasoning effort for the Architect (default: ${DEFAULT_ARCHITECT_EFFORT}). Use 'high' for complex cross-cutting concerns.`,
             },
             contrarianEffort: {
               type: "string",
-              enum: ["low", "medium", "high"],
-              description:
-                "Reasoning effort for the Contrarian (default: high). Maximum depth adversarial stress-testing.",
+              enum: effortEnum,
+              description: `Reasoning effort for the Contrarian (default: ${DEFAULT_CONTRARIAN_EFFORT}). Maximum depth adversarial stress-testing.`,
             },
           },
-          required: ["problem"],
+          required: ["problem", "system_overview"],
         },
       },
       {
         name: "consult_architect",
         description:
-          "Directly queries The Architect (OpenAI gpt-5.6-sol) for high-level system decomposition, modular design, API interfaces, and structured implementation steps.",
+          `Directly queries The Architect (${DEFAULT_ARCHITECT_MODEL}) for high-level system decomposition, modular design, API interfaces, and structured implementation steps.` +
+          BRIEFING_PROTOCOL,
         inputSchema: {
           type: "object",
           properties: {
@@ -89,21 +134,15 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description:
                 "The architectural question, design specification, or system requirement.",
             },
-            context: {
-              type: "string",
-              description:
-                "Additional codebase background, existing file schemas, or constraints.",
-            },
+            ...briefProperties,
             model: {
               type: "string",
-              description:
-                "Optional override for the Architect model (default: gpt-5.6-sol).",
+              description: `Optional override for the Architect model (default: ${DEFAULT_ARCHITECT_MODEL}).`,
             },
             effort: {
               type: "string",
-              enum: ["low", "medium", "high"],
-              description:
-                "Reasoning effort level (default: medium).",
+              enum: effortEnum,
+              description: `Reasoning effort level (default: ${DEFAULT_ARCHITECT_EFFORT}).`,
             },
           },
           required: ["prompt"],
@@ -112,7 +151,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: "consult_contrarian",
         description:
-          "Directly queries The Contrarian (DeepSeek-V4 Pro) for adversarial code review, bug-hunting, edge cases, race conditions, and over-engineering checks.",
+          `Directly queries The Contrarian (${DEFAULT_CONTRARIAN_MODEL}) for adversarial code review, bug-hunting, edge cases, race conditions, and over-engineering checks.` +
+          BRIEFING_PROTOCOL,
         inputSchema: {
           type: "object",
           properties: {
@@ -121,21 +161,15 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description:
                 "The code snippet, proposed design, or logic to stress-test and critique.",
             },
-            context: {
-              type: "string",
-              description:
-                "Surrounding system context, concurrency model, or requirements.",
-            },
+            ...briefProperties,
             model: {
               type: "string",
-              description:
-                "Optional override for the Contrarian model (default: deepseek-v4-pro).",
+              description: `Optional override for the Contrarian model (default: ${DEFAULT_CONTRARIAN_MODEL}).`,
             },
             effort: {
               type: "string",
-              enum: ["low", "medium", "high"],
-              description:
-                "Reasoning effort level (default: high). Maximum depth for adversarial critique.",
+              enum: effortEnum,
+              description: `Reasoning effort level (default: ${DEFAULT_CONTRARIAN_EFFORT}). Maximum depth for adversarial critique.`,
             },
           },
           required: ["prompt"],
@@ -144,7 +178,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: "offload_task",
         description:
-          "Offloads a focused implementation subtask, utility function, unit test suite, regex, or refactoring step to a fast external worker (DeepSeek-V4 Flash or OpenAI gpt-5-mini) to save host agent context and execution limits.",
+          `Offloads a focused implementation subtask, utility function, unit test suite, regex, or refactoring step to a fast external worker (${DEFAULT_DEEPSEEK_FLASH_MODEL} via DeepSeek, or ${DEFAULT_OPENAI_WORKER_MODEL} via OpenAI) to save host agent context and execution limits. The worker is blind too: pass types/interfaces via the brief fields or context_files.`,
         inputSchema: {
           type: "object",
           properties: {
@@ -153,11 +187,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description:
                 "The exact subtask, function to write, unit test table, or transformation to perform.",
             },
-            context: {
-              type: "string",
-              description:
-                "Surrounding code, types, constraints, or interfaces needed to execute the task accurately.",
-            },
+            ...briefProperties,
             provider: {
               type: "string",
               enum: ["deepseek", "openai"],
@@ -166,14 +196,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             model: {
               type: "string",
-              description:
-                "Optional model override (defaults to deepseek-v4-flash or gpt-5.6-sol).",
+              description: `Optional model override (defaults to ${DEFAULT_DEEPSEEK_FLASH_MODEL} for deepseek, ${DEFAULT_OPENAI_WORKER_MODEL} for openai).`,
             },
             effort: {
               type: "string",
-              enum: ["low", "medium", "high"],
-              description:
-                "Reasoning effort if using a reasoning model (default: 'low' for GPT SOL to achieve sub-2s latency).",
+              enum: effortEnum,
+              description: `Reasoning effort for the openai worker (default: '${DEFAULT_OPENAI_WORKER_EFFORT}').`,
             },
           },
           required: ["task"],
@@ -182,14 +210,23 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: "fast_context_reader",
         description:
-          "Parses, filters, or summarizes raw file contents, large logs, cache dumps, or complex schemas using a high-speed worker (DeepSeek-V4 Flash) in ~1-2 seconds. Prevents bloating host agent context window.",
+          `Parses, filters, or summarizes raw file contents, large logs, cache dumps, or complex schemas using a high-speed worker (${DEFAULT_DEEPSEEK_FLASH_MODEL}). Pass inline 'content' and/or file paths in 'files' so large files never enter the host context.`,
         inputSchema: {
           type: "object",
           properties: {
             content: {
               type: "string",
               description:
-                "The raw text, code file, log output, or cached content to extract from.",
+                "The raw text, code file, log output, or cached content to extract from. Optional if 'files' is given.",
+            },
+            files: {
+              type: "array",
+              items: { type: "string" },
+              description: "File paths to read server-side. Optional line range: 'src/a.ts:10-80'.",
+            },
+            workspace_root: {
+              type: "string",
+              description: "Absolute project root for resolving relative paths (default: server cwd).",
             },
             focus: {
               type: "string",
@@ -199,16 +236,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             provider: {
               type: "string",
               enum: ["deepseek", "openai"],
-              description:
-                "Worker provider (default: 'deepseek').",
+              description: "Worker provider (default: 'deepseek').",
             },
             model: {
               type: "string",
-              description:
-                "Optional model override (default: deepseek-v4-flash).",
+              description: `Optional model override (default: ${DEFAULT_DEEPSEEK_FLASH_MODEL}).`,
             },
           },
-          required: ["content", "focus"],
+          required: ["focus"],
         },
       },
     ],

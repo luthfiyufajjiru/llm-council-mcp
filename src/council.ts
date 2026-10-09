@@ -8,6 +8,7 @@ import {
   DEFAULT_OPENAI_WORKER_EFFORT,
   DEFAULT_ARCHITECT_EFFORT,
   DEFAULT_CONTRARIAN_EFFORT,
+  normalizeDeepSeekModel,
 } from "./providers.js";
 import {
   ARCHITECT_SYSTEM_PROMPT,
@@ -24,6 +25,7 @@ import {
   FastContextReaderInput,
   WorkerResult,
 } from "./types.js";
+import { buildBrief, readContextFiles } from "./brief.js";
 
 export async function consultArchitect(
   input: SingleConsultInput
@@ -34,8 +36,9 @@ export async function consultArchitect(
 
   try {
     const client = getOpenAIClient();
-    const userMessage = input.context
-      ? `CONTEXT:\n${input.context}\n\nTASK / QUESTION:\n${input.prompt}`
+    const brief = await buildBrief(input);
+    const userMessage = brief
+      ? `# BRIEF (compiled by the host agent from its codebase investigation)\n${brief}\n\n# TASK / QUESTION\n${input.prompt}`
       : input.prompt;
 
     const response = await client.chat.completions.create({
@@ -70,14 +73,15 @@ export async function consultArchitect(
 export async function consultContrarian(
   input: SingleConsultInput
 ): Promise<CouncilMemberResult> {
-  const model = input.model || DEFAULT_CONTRARIAN_MODEL;
+  const model = normalizeDeepSeekModel(input.model || DEFAULT_CONTRARIAN_MODEL);
   const effort = input.effort || DEFAULT_CONTRARIAN_EFFORT;
   const startTime = Date.now();
 
   try {
     const client = getDeepSeekClient();
-    const userMessage = input.context
-      ? `CONTEXT:\n${input.context}\n\nTASK / CODE / ARCHITECTURE TO CRITIQUE:\n${input.prompt}`
+    const brief = await buildBrief(input);
+    const userMessage = brief
+      ? `# BRIEF (compiled by the host agent from its codebase investigation)\n${brief}\n\n# TASK / CODE / ARCHITECTURE TO CRITIQUE\n${input.prompt}`
       : input.prompt;
 
     const response = await client.chat.completions.create({
@@ -116,21 +120,21 @@ export async function deliberateCouncil(
   input: DeliberationInput
 ): Promise<DeliberationOutput> {
   const architectModel = input.architectModel || DEFAULT_ARCHITECT_MODEL;
-  const contrarianModel = input.contrarianModel || DEFAULT_CONTRARIAN_MODEL;
+  const contrarianModel = normalizeDeepSeekModel(input.contrarianModel || DEFAULT_CONTRARIAN_MODEL);
   const architectEffort = input.architectEffort || DEFAULT_ARCHITECT_EFFORT;
   const contrarianEffort = input.contrarianEffort || DEFAULT_CONTRARIAN_EFFORT;
 
   // Stage 1: Parallel Gathering (Independent generation, no cross-contamination)
   const [architectResult, contrarianResult] = await Promise.all([
     consultArchitect({
+      ...input,
       prompt: input.problem,
-      context: input.context,
       model: architectModel,
       effort: architectEffort,
     }),
     consultContrarian({
+      ...input,
       prompt: input.problem,
-      context: input.context,
       model: contrarianModel,
       effort: contrarianEffort,
     }),
@@ -151,6 +155,12 @@ export async function deliberateCouncil(
       "Evaluate trade-offs between the Architect's modular structure vs. the Contrarian's simplicity/edge-case warnings."
     );
     tensionPoints.push(
+      "Collect every 'Needs from host' request from both members, investigate them (graphify, file reads), and re-consult with an enriched brief if any are material."
+    );
+    tensionPoints.push(
+      "Collect every 'Needs from host' request from both members, investigate them (graphify, file reads), and re-consult with an enriched brief if any are material."
+    );
+    tensionPoints.push(
       "Verify that the Contrarian's highlighted failure modes and edge cases are addressed in the final execution plan."
     );
   }
@@ -166,16 +176,18 @@ export async function executeTaskWorker(
   input: TaskWorkerInput
 ): Promise<WorkerResult> {
   const provider = input.provider || "deepseek";
-  const model =
+  const rawModel =
     input.model ||
     (provider === "openai" ? DEFAULT_OPENAI_WORKER_MODEL : DEFAULT_DEEPSEEK_FLASH_MODEL);
+  const model = provider === "deepseek" ? normalizeDeepSeekModel(rawModel) : rawModel;
   const effort = input.effort || (provider === "openai" ? DEFAULT_OPENAI_WORKER_EFFORT : undefined);
   const startTime = Date.now();
 
   try {
     const client = provider === "openai" ? getOpenAIClient() : getDeepSeekClient();
-    const userMessage = input.context
-      ? `CONTEXT:\n${input.context}\n\nTASK TO COMPLETE:\n${input.task}`
+    const brief = await buildBrief(input);
+    const userMessage = brief
+      ? `# CONTEXT\n${brief}\n\n# TASK TO COMPLETE\n${input.task}`
       : input.task;
 
     const requestPayload: any = {
@@ -214,14 +226,22 @@ export async function readFastContext(
   input: FastContextReaderInput
 ): Promise<WorkerResult> {
   const provider = input.provider || "deepseek";
-  const model =
+  const rawModel =
     input.model ||
     (provider === "openai" ? DEFAULT_OPENAI_WORKER_MODEL : DEFAULT_DEEPSEEK_FLASH_MODEL);
+  const model = provider === "deepseek" ? normalizeDeepSeekModel(rawModel) : rawModel;
   const startTime = Date.now();
 
   try {
     const client = provider === "openai" ? getOpenAIClient() : getDeepSeekClient();
-    const userMessage = `CONTENT TO PARSE:\n${input.content}\n\nFOCUS / EXTRACTION DIRECTIVE:\n${input.focus}`;
+    const sources: string[] = [];
+    if (input.content?.trim()) sources.push(input.content);
+    if (input.files?.length) {
+      const { text, warnings } = await readContextFiles(input.files, input.workspace_root || process.cwd());
+      if (text) sources.push(text);
+      if (warnings.length) sources.push(`[file warnings]\n${warnings.map((w) => `- ${w}`).join("\n")}`);
+    }
+    const userMessage = `CONTENT TO PARSE:\n${sources.join("\n\n")}\n\nFOCUS / EXTRACTION DIRECTIVE:\n${input.focus}`;
 
     const response = await client.chat.completions.create({
       model,
