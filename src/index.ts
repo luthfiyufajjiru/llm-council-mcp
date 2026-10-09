@@ -4,7 +4,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import { startHttp } from "./http.js";
+import { startHttp, type CallLogger } from "./http.js";
 import {
   consultArchitect,
   consultContrarian,
@@ -86,7 +86,7 @@ const ADVISORY_NOTICE =
 const effortEnum =["low", "medium", "high"];
 
 // Register Tools
-function registerHandlers(server: Server): void {
+function registerHandlers(server: Server, onCall?: CallLogger): void {
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
@@ -256,7 +256,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 });
 
 // Handle Tool Execution
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
+const handleCall = async (request: { params: { name: string; arguments?: unknown } }) => {
   const { name, arguments: args } = request.params;
 
   try {
@@ -355,13 +355,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       ],
     };
   }
+};
+
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  const startedAt = Date.now();
+  const result = await handleCall(request);
+  const first: any = result.content?.[0];
+  onCall?.({
+    tool: request.params.name,
+    ok: !("isError" in result && result.isError),
+    ms: Date.now() - startedAt,
+    detail: "isError" in result && result.isError ? String(first?.text ?? "").slice(0, 160) : undefined,
+  });
+  return result;
 });
 
 }
 
-function createServer(): Server {
+function createServer(onCall?: CallLogger): Server {
   const server = createBareServer();
-  registerHandlers(server);
+  registerHandlers(server, onCall);
   return server;
 }
 

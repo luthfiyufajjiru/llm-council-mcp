@@ -2,6 +2,8 @@ import http from "http";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
+export type CallLogger = (e: { tool: string; ok: boolean; ms: number; detail?: string }) => void;
+
 export interface HttpOptions {
   host: string;
   port: number;
@@ -33,7 +35,7 @@ async function readBody(req: http.IncomingMessage): Promise<unknown> {
  * (Antigravity, Claude Code, ...) can share one long-running process and a
  * restart never strands a session id.
  */
-export function startHttp(createServer: () => Server, opts: HttpOptions): http.Server {
+export function startHttp(createServer: (onCall?: CallLogger) => Server, opts: HttpOptions): http.Server {
   const httpServer = http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url || "/", "http://localhost");
@@ -70,7 +72,12 @@ export function startHttp(createServer: () => Server, opts: HttpOptions): http.S
       console.error(
         `[${new Date().toISOString()}] ${rpc?.method ?? "?"}${client ? ` client=${client}` : ""} ua=${req.headers["user-agent"] ?? "-"}`
       );
-      const server = createServer();
+      const ua = req.headers["user-agent"] ?? "-";
+      const server = createServer((e) =>
+        console.error(
+          `[${new Date().toISOString()}] tool=${e.tool} ${e.ok ? "ok" : "ERROR"} ${e.ms}ms ua=${ua}${e.detail ? ` detail=${JSON.stringify(e.detail)}` : ""}`
+        )
+      );
       const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
       res.on("close", () => {
         transport.close().catch(() => {});
