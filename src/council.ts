@@ -140,7 +140,7 @@ export async function deliberateCouncil(
     }),
   ]);
 
-  // Stage 2: Identify key tensions / points of comparison for the Chairman
+  // Stage 2: Identify key tensions / points of comparison for the executor to weigh
   const tensionPoints: string[] = [];
 
   if (architectResult.error) {

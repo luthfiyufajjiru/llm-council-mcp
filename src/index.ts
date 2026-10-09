@@ -79,7 +79,10 @@ const briefProperties = {
 const BRIEFING_PROTOCOL =
   " BRIEFING PROTOCOL: council members are blind (no repo or tool access). Investigate first (graphify, file reads), then pass your findings in the brief fields. Members end with 'Needs from host' requests; satisfy them and re-consult if material.";
 
-const effortEnum = ["low", "medium", "high"];
+const ADVISORY_NOTICE =
+  "\n\n---\n_Advisory input only. The council cannot see your codebase and may be wrong. You (the executor) own the decision: verify claims against the actual code, adopt only what holds up, and disagree where warranted._";
+
+const effortEnum =["low", "medium", "high"];
 
 // Register Tools
 server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -88,7 +91,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: "deliberate_council",
         description:
-          `Runs a full multi-model LLM Council deliberation. Concurrently queries the Architect (${DEFAULT_ARCHITECT_MODEL}) for a structural blueprint and the Contrarian (${DEFAULT_CONTRARIAN_MODEL}) for adversarial critique and edge cases. Returns both perspectives for the Host Agent (Chairman) to synthesize and execute. Requires system_overview plus relevant_code and/or context_files.` +
+          `Runs a full multi-model LLM Council deliberation. Concurrently queries the Architect (${DEFAULT_ARCHITECT_MODEL}) for a structural blueprint and the Contrarian (${DEFAULT_CONTRARIAN_MODEL}) for adversarial critique and edge cases. Returns two ADVISORY perspectives; the calling agent remains the decision-maker and executor, and should weigh and verify them rather than follow them verbatim. Requires system_overview plus relevant_code and/or context_files.` +
           BRIEFING_PROTOCOL,
         inputSchema: {
           type: "object",
@@ -267,8 +270,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         `## Stage 2: The Contrarian's Adversarial Critique (${result.contrarian.model} | effort: ${result.contrarian.effort} | ${result.contrarian.durationMs}ms)`,
         result.contrarian.response,
         `\n---\n`,
-        `## Key Tension Points & Synthesis Focus for Chairman:`,
+        `## Points of Tension to Weigh:`,
         ...result.tensionPoints.map((tp) => `- ${tp}`),
+        ADVISORY_NOTICE,
       ].join("\n");
 
       return {
@@ -289,7 +293,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         content: [
           {
             type: "text",
-            text: `### The Architect's Guidance (${result.model} - ${result.durationMs}ms)\n\n${result.response}`,
+            text: `### The Architect's Guidance (${result.model} - ${result.durationMs}ms)\n\n${result.response}${ADVISORY_NOTICE}`,
           },
         ],
       };
@@ -303,7 +307,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         content: [
           {
             type: "text",
-            text: `### The Contrarian's Adversarial Review (${result.model} - ${result.durationMs}ms)\n\n${result.response}`,
+            text: `### The Contrarian's Adversarial Review (${result.model} - ${result.durationMs}ms)\n\n${result.response}${ADVISORY_NOTICE}`,
           },
         ],
       };

@@ -3,7 +3,7 @@
 > [!NOTE]
 > **Attribution & Inspiration**: This project is inspired by **Andrej Karpathy's LLM Council** multi-perspective deliberation methodology. It operationalizes the 3-Stage Council Protocol (Independent Gathering, Adversarial Critique, and Chairman Synthesis) as a native **Model Context Protocol (MCP)** tool server for modern AI coding agents.
 
-A high-performance, host-agnostic MCP server that empowers **Any AI Coding Agent (Google Antigravity, Claude Code, Codex, Cursor)** to act as the **Chairman & Executor** while delegating:
+A high-performance, host-agnostic MCP server that empowers **Any AI Coding Agent (Google Antigravity, Claude Code, Codex, Cursor)** to remain the **primary thinker and Executor**, consulting the council as advisors (penasihat) while delegating:
 - **Architectural Strategy & Modular Contracts** to **OpenAI (`gpt-5.6-sol`)** *(The Architect)*
 - **Adversarial Critique & Edge-Case Stress Testing** to **DeepSeek (`deepseek-v4-pro` / `deepseek-reasoner`)** *(The Contrarian)*
 
@@ -46,7 +46,7 @@ Both models are queried **concurrently** via asynchronous I/O to minimize latenc
 
 1. **Stage 1: The Gathering (The Architect)**: OpenAI independently evaluates the problem, designing clean interface boundaries, type contracts, and sequence of changes.
 2. **Stage 2: The Critique (The Contrarian)**: DeepSeek Reasoner independently stress-tests the problem, searching for race conditions, subtle logic regressions, and unnecessary over-engineering.
-3. **Stage 3: The Chairman's Decree (The Host Agent)**: The calling agent (Antigravity Gemini, Claude Code, or Codex/Cursor) receives both structured perspectives, resolves points of tension, creates the implementation plan, and executes the workspace changes.
+3. **Stage 3: The Executor's Decision (The Host Agent)**: The council is advisory only. The calling agent (Antigravity Gemini, Claude Code, or Codex/Cursor) receives both perspectives, verifies them against the real codebase, decides what to adopt, creates the implementation plan, and executes the workspace changes.
 
 ---
 
@@ -54,7 +54,7 @@ Both models are queried **concurrently** via asynchronous I/O to minimize latenc
 
 | Tool | Description |
 | :--- | :--- |
-| `deliberate_council` | Concurrently queries both the Architect (`gpt-5.6-sol`) and Contrarian (`deepseek-v4-pro`), returning a structured report with identified tension points for Chairman synthesis. |
+| `deliberate_council` | Concurrently queries both the Architect (`gpt-5.6-sol`) and Contrarian (`deepseek-v4-pro`), returning a structured report with identified tension points as advisory input for the executor to weigh. |
 | `consult_architect` | Single-target query to OpenAI for API schema design, interface planning, or modular file layouts. |
 | `consult_contrarian` | Single-target query to DeepSeek-V4 Pro for adversarial code reviews, bug-hunting, edge cases, and over-engineering checks. |
 | `offload_task` | Offloads focused implementation subtasks, utility code, unit test suites, or regex writing to high-speed workers (**DeepSeek-V4 Flash** or **OpenAI gpt-5-mini**). Prevents host turn/token depletion. |
