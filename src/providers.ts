@@ -34,22 +34,22 @@ export function getDeepSeekClient(): OpenAI {
   });
 }
 
+// DeepSeek V4.1 aliases -> the API's canonical ids (GET /models lists only these two):
+//   Flash -> "deepseek-flash", Pro -> "deepseek-v4-pro". Bare "v4.1" means Flash (the default).
+// Unknown names (e.g. "deepseek-reasoner") pass through unchanged.
+const DEEPSEEK_FLASH_ALIASES = new Set([
+  "deepseek-flash", "deepseek-v4-flash", "deepseek-v4.1-flash", "deepseek-v4.1",
+  "deepseek-4.1", "v4.1", "4.1",
+]);
+const DEEPSEEK_PRO_ALIASES = new Set([
+  "deepseek-pro", "deepseek-v4-pro", "deepseek-v4.1-pro", "deepseek-4.1-pro", "v4.1-pro",
+]);
+
 export function normalizeDeepSeekModel(model?: string): string {
   if (!model) return DEFAULT_CONTRARIAN_MODEL;
   const m = model.toLowerCase().trim();
-  if (
-    m === "deepseek-v4.1" ||
-    m === "deepseek-v4.1-pro" ||
-    m === "deepseek-v4.1-flash" ||
-    m === "deepseek-4.1" ||
-    m === "deepseek-v4-flash" ||
-    m === "deepseek-v4-pro" ||
-    m === "deepseek-flash" ||
-    m === "v4.1" ||
-    m === "4.1"
-  ) {
-    return "deepseek-flash";
-  }
+  if (DEEPSEEK_FLASH_ALIASES.has(m)) return "deepseek-flash";
+  if (DEEPSEEK_PRO_ALIASES.has(m)) return "deepseek-v4-pro";
   return model;
 }
 
